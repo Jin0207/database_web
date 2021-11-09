@@ -1,0 +1,23 @@
+<%@ page language="java" contentType="text/html; charset=EUC-KR"
+    pageEncoding="EUC-KR"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="EUC-KR">
+<title>Insert title here</title>
+</head>
+<body>
+	<form action="searchBook.jsp" method="post">
+		금액을 입력하세요 ==> <input type="text" name="price">
+		<input type="submit" value="검색">
+	</form>
+	
+	<%
+		//맨 처음에 문서를 열었을 때, 입력된 값이 없음
+		int price = Integer.parseInt(request.getParameter("price"));
+	
+	
+	
+	%>
+</body>
+</html>

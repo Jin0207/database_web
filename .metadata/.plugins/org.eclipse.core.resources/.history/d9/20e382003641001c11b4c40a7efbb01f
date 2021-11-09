@@ -1,0 +1,29 @@
+<%@page import="com.sist.vo.BookVO"%>
+<%@page import="java.util.ArrayList"%>
+<%@page import="com.sist.dao.BookDAO"%>
+<%@ page language="java" contentType="text/html; charset=EUC-KR"
+    pageEncoding="EUC-KR"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="EUC-KR">
+<title>Insert title here</title>
+</head>
+<body>
+	<form action="searchPublisher.jsp" method="post">
+		출판사명을 입력해주세요 ==> <input type="text" name="publisher">
+		<input type="submit" value="검색">
+		
+		<%
+			if(request.getParameter("publisher") != null){
+				String publisher = request.getParameter("publisher");
+				BookDAO dao = new BookDAO();
+				ArrayList<BookVO> list = new ArrayList<BookVO>();
+				
+			}
+		
+		
+		%>
+	</form>
+</body>
+</html>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="EUC-KR">
+<title>Insert title here</title>
+</head>
+<body>
+	<table border="1">
+		<tr>
+			<th>주문번호</th>
+			<th>고객번호</th>
+			<th>도서번호</th>
+			<th>구매금액</th>
+			<th>구매날짜</th>
+		</tr>
+		<tr>
+			<td>1</td>
+			<td>1</td>
+			<td>1</td>
+			<td>6000</td>
+			<td>2021/11/01</td>
+		</tr>
+		<tr>
+			<td>2</td>
+			<td>2</td>
+			<td>3</td>
+			<td>16000</td>
+			<td>2021/11/08</td>
+		</tr>
+	</table>
+</body>
+</html>

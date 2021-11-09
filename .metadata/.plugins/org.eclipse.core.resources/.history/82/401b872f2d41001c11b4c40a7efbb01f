@@ -1,0 +1,40 @@
+<%@page import="com.sist.vo.BookVO"%>
+<%@page import="java.util.ArrayList"%>
+<%@page import="com.sist.dao.BookDAO"%>
+<%@ page language="java" contentType="text/html; charset=EUC-KR"
+    pageEncoding="EUC-KR"%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="EUC-KR">
+<title>Insert title here</title>
+</head>
+<body>
+	<form action="searchBook.jsp" method="post">
+		금액을 입력하세요 ==> <input type="text" name="price">
+		<input type="submit" value="검색">
+	</form>
+	
+	<%
+		//맨 처음에 문서를 열었을 때, 입력된 값이 없음 => null -- 에러발생
+		//int price = Integer.parseInt(request.getParameter("price"));
+		//값을 입력하고 전송을 눌럿을 때, 값을 가져와야함
+		// 처음부터는 불가능
+		if(request.getParameter("price") != null){
+			int price = Integer.parseInt(request.getParameter("price"));
+			BookDAO dao = new BookDAO();
+			ArrayList<BookVO> list = dao.searchBook(price);
+			%>
+				<table>
+					<tr>
+						<td></td>
+					</tr>
+				</table>
+			
+			<%
+			
+		}
+		
+	%>
+</body>
+</html>

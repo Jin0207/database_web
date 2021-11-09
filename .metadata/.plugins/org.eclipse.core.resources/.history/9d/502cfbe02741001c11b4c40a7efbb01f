@@ -1,0 +1,10 @@
+package com.sist.dao;
+
+import java.util.ArrayList;
+
+import com.sist.vo.BookVO;
+
+public class BookDAO {
+	//가격을 매개변수로 전달받아 그 가격 이하인 모든 도서목록을 검색하여 ArrayList로 반환하는 메소드 정의
+	public ArrayList<BookVO>
+}

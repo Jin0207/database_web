@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Rename type &apos;com.sist.vo.PublisherVO&apos; to &apos;BookVO&apos;&#x0D;&#x0A;- Original project: &apos;test&apos;&#x0D;&#x0A;- Original element: &apos;com.sist.vo.PublisherVO&apos;&#x0D;&#x0A;- Renamed element: &apos;com.sist.vo.BookVO&apos;&#x0D;&#x0A;- Update references to refactored element&#x0D;&#x0A;- Update textual occurrences in comments and strings" description="Rename type &apos;PublisherVO&apos;" flags="589830" id="org.eclipse.jdt.ui.rename.type" input="/src\/main\/java&lt;com.sist.vo{PublisherVO.java[PublisherVO" matchStrategy="1" name="BookVO" qualified="false" references="true" similarDeclarations="false" stamp="1636445118910" textual="false" version="1.0"/>
+</session>

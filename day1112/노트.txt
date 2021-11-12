@@ -1,0 +1,745 @@
+*'박지성'이 구매하지 않은 도서명 모두 출력
+
+- 고객테이블로부터 이름이 '박지성'인 고객의 고객번호 검색
+select custid from customer where name = '박지성';
+
+- 주문테이블로부터 고객번호가 1번인 고객이 주문한 도서번호들을 검색
+select bookid from orders 
+where custid =(select custid from customer 
+where name = '박지성');
+
+- 도서테이블로부터 도서번호가 (1,3,2,13)이 아닌 도서이름들을 출력
+select bookname from book
+where bookid not in(select bookid from orders 
+where custid =(select custid from customer 
+where name = '박지성'));
+----------------------------------------------------------
+
+한 레코드를 전체 출력하고자 한다면 VO를 만드는게 좋음
+그런데 열 1개만 출력할 때는 굳이 VO를 만들 필요가없음
+--> 컬럼이 1개일때는 굳이 VO를 만들 필요없다
+그냥 ArrayList에 String(도서이름)을 담으면 된다.
+-------------------------------------------------------------------
+
+* 주문하지 않은 고객의 이름 출력
+
+-주문테이블로부터 고객번호 출력 --> 구매를 한 고객들의 번호가 출력됨
+select distinct custid from orders;
+
+- 고객테이블로부터 위에서 나온 고객번호가 아닌 고객의 이름을 출력
+select name from customer 
+where custid not in(select distinct custid from orders);
+----------------------------------------------------------------------------
+
+*두 개이상의 서로 다른 출판사에 도서를 구매한 고객의 이름 출력
+
+-고객별로 구매한 출판사의 수를 출력
+select name, count(distinct publisher) cnt
+from customer c, book b, orders o
+where c.custid = o.custid and
+b.bookid = o.bookid
+group by name; ==> A
+
+-A로부터 cnt가 2이상인 고객의 이름 출력
+select name from (select name, count(distinct publisher) cnt
+from customer c, book b, orders o
+where c.custid = o.custid and
+b.bookid = o.bookid
+group by name) A where A.cnt >= 2;
+
+------------------------------------------------------------------
+* 박지성이 구매한 도서의 출판사 수 출력
+- join을 이용
+select count(distinct publisher) from customer c, book d, orders o
+where c.custid = o.custid and
+d.bookid = o.bookid and
+name = '박지성';
+
+-서브쿼리 이용
+select custid from customer where name = '박지성';
+
+-박지성이 구매한 도서번호
+select bookid from orders where
+custid = (select custid from customer where name = '박지성');
+
+-book 테이블로부터 위의 도서번호에 해당하는 출판사 수
+select count(distinct publisher) from book
+where bookid in(select bookid from orders where
+custid = (select custid from customer where name = '박지성'));
+
+-------------------------------------------------------------------------
+*윤석열에게 추천할 도서이름 출력
+=> 윤석열이 구매한 도서와 동일한 도서를 가장 많이 구매한 사람이 구매한 도서 중 윤석열이 구매하지 않은 도서이름 출력
+
+======================================================================================================================================
+
+select ~~~~ from 테이블1 [left/ right] outer join 테이블2 on 다른 조건 ==> 다른 조건식이 and가 아닌 덧셈으로 적용
+																			--서브쿼리 필요
+																			
+select ~~~~ from 테이블1, 테이블2 where 조인식(+) and 다른조건 ==> 다른 조건식이 and로 적용
+																	+기호는 오라클에서만 동작함
+
+[left/ right] outer join
+and는 +로 동작하고
+
+(+) 로 쓰면 and는 논리연산자로
+근데 + 는 오라클에서만 사용할 수 있음
+=====================================================================================================================
+
+다중행 연산자
+-> 	서브쿼리가 where절에 사용이 될 때
+	서브쿼리의 건수가 여러건일 때 사용하는 연산자
+	in
+	not in
+	
+단일행 연산자
+-> 행이 한개일때 사용하는 연산자
+
+연습문제
+---
+
+ 박지성의 총 구매액
+ select sum(saleprice) from orders o, customer c
+ where o.custid = c.custid and name = '박지성';
+ 
+ select sum(saleprice) from orders where custid = (select custid from customer where name = '박지성');
+ --
+ 
+ 박지성이 구매한 도서의 이름, 가격, 정가와 판매가격의 차이
+ select bookname, price, saleprice, price-saleprice
+ from book b, orders o
+ where o.bookid = b.bookid and
+ custid = (select custid from customer where name = '박지성');
+ 
+ select bookname, price, price-saleprice
+ from customer c,book b, orders o
+ where c.custid = o.custid and
+ b.bookid = o.bookid and
+ name = '박지성';
+ 
+ ** 절대값을 구해주는 함수 
+ 	abs()
+ 	
+ select bookname, price, abs(price-saleprice)
+ from customer c,book b, orders o
+ where c.custid = o.custid and
+ b.bookid = o.bookid and
+ name = '박지성'; 	
+ --
+ 
+ 마당서점의 도서의 총 개수
+ select count(*) from book;
+ --
+ 
+ 마당서점에 도서를 출고하는 출판사의 총 개수
+ select count(distinct publisher) from book;
+ --
+ 
+ 도서의 가격과 판매가격의 차이가 가장 많은 주문
+ select max(price-saleprice) from book b, orders o
+ where o.bookid = b.bookid;
+ --
+ 
+도서의 가격과 판매가격의 차이가 가장 많은 주문
+-도서의 가격과 판매가격 차이의 최대값
+	select max(abs(price - saleprice)) from book b, orders o
+	where b.bookid = o.bookid;
+
+-- 해당 주문번호
+	select orderid from orders o, book b 
+	where o.bookid = b.bookid and 
+	abs(price - saleprice) = (select max(abs(price - saleprice)) from book b, orders o
+	where b.bookid = o.bookid);
+
+- 주문번호가 9번인 주문내역 출력
+	select * from orders where
+	orderid = (select orderid from orders o, book b 
+	where o.bookid = b.bookid and 
+	abs(price - saleprice) = (select max(abs(price - saleprice)) from book b, orders o
+	where b.bookid = o.bookid));
+--
+
+도서의 판매액 평균보다 자신의 구매액 평균이 더 높은 고객의 이름
+
+select name from (select name, avg(saleprice) from customer c, orders o
+where c.custid = o.custid
+group by name
+having avg(saleprice) > (select avg(saleprice) from orders)) name;
+
+-도서의 판매액 평균
+	select avg(salerprice) from orders;
+
+-고객아이디별로 구매액 평균 출력
+	select custid, avg(saleprice) from orders group by custid; 
+		==> A
+-A중에서 A의 평균이도서판매액 평균보다 높은 고객번호 검색 ＠
+	  select name from customer where custid in (select custid from ( select custid, avg(saleprice) avg from orders group by custid ) A
+    	where A.avg > ( select avg(saleprice) from orders)); 
+
+-위의 고객번호가 해당하는 고객의 이름 출력
+	select name from customer where custid in ();
+--
+
+모든 직원의 이름과 직위를 출력
+	select ename, job from emp;
+
+--
+
+30번 부서에 근무하는 모든 사원의 이름과 급여 출력
+	select ename, salary from emp where dno = 30;
+--
+
+개발팀에 근무하는 모든 사원의 이름과 급여를 출력
+	select ename, salary from emp e, dept d
+	where e.dno = d.dno and
+	dname like('개발%');
+	
+	select ename, salary from emp
+	where dno in(select dno from dept where dname like '개발%');
+--
+
+직급별로 동일한 직급의 직원수를 출력
+	select job, count(salary) from emp group by job;
+--
+
+20번 부서의 구성원수와 직원들의 급여의 합계, 평균 출력
+	select count(*),sum(salary), avg(salary) from emp where dno=20;
+--
+
+개발1팀에 근무하는 직원들의 구성원수와 직원들의 급여의 합계와 평균 출력
+	select count(*), sum(salary), avg(salary) from emp e, dept d
+	where e.dno = d.dno and
+	dname = '개발1팀';
+	
+	select count(*), sum(salary), avg(salary)
+	from emp
+	where dno = (select dno from dept where dname = '개발1팀');
+--
+
+서교동에 근무하는 직원들의 구성원수와 직원들의 급여의 합계와 평균 출력
+	select count(*), sum(salary), avg(salary) from emp e, dept d
+	where e.dno = d.dno and
+	dloc = '서교동';
+	
+	select count(*), sum(salary). avg(salary)
+	from emp
+	where dno in (select dno from dept where dloc = '서교동');
+--
+
+평균급여가 가장 높은 부서번호를 출력
+	select dno from (select dno, avg(salary) from emp
+	group by dno
+	having avg(salary) > (select avg(salary) from emp));
+	
+-부서번호별로 평균급여 출력
+	select dno, avg(salary) from emp group by dno; => A
+-부서별 평균급여의 최대값 출력
+	select max(avg(salary)) from emp group by dno;
+- A중에서 평균급여가 max인 부서번호를 출력
+	select dno from (select dno, avg(salary) avg from emp group by dno) A 
+	where A.avg = (select max(avg(salary)) from emp group by dno);
+--
+
+평균급여가 가장 높은 부서에 근무하는 직원들의 이름 출력
+	select avg(salary) from emp;
+
+	select dno, avg(salary) from emp
+	group by dno
+	having avg(salary) > (select avg(salary) from emp);
+	
+	select dno from (select dno, avg(salary) from emp
+	group by dno
+	having avg(salary) > (select avg(salary) from emp));
+	
+	select ename from emp
+	where dno = (select dno from (select dno, avg(salary) from emp
+	group by dno
+	having avg(salary) > (select avg(salary) from emp)));
+	
+	-
+	select dname from dept 
+		where dno in (select dno from (select dno, avg(salary) avg from emp group by dno) A 
+	where A.avg = (select max(avg(salary)) from emp group by dno));
+--
+
+전체직원들 중에 직속상관이 있는 사원의 수 출력
+	select count(mgr) from emp
+	where eno in(select eno from emp where job = '사원');
+	-
+	select count(*) from emp where mgr != null; (x)
+	select count(*) from emp where mgr is not null;
+	select count(mgr) from emp;
+--
+
+사원테이블에서 이름, 급여, 수당, 총액을 구하여 총액이 높은순으로 출력
+단, 수당이 null인 사람 제외
+	select ename, salary, comm, salary+comm
+	from emp
+	where salary is not null
+	order by salary+comm desc;
+--
+
+각 부서별로 같은 직급의 사람의 수를 구하여 부서번호, 직급, 사람수 출력
+	select dno, job, count(*)
+	from emp
+	group by dno, job
+	order by dno, job;
+--
+
+직원이 한명도 없는 부서의 이름 출력
+	select dname from dept
+	where dno not in(select distinct dno from emp);
+--
+
+같은 직급의 사람의 수가 2명이상인 직급과 인원수 출력
+	select job, count(*) from emp group by job having count(*) >= 2;
+	-
+--
+
+'박지예'보다 급여를 더 많이 받는 사람 이름 출력
+	select ename from emp
+	where salary > (select salary from emp where ename='박지예');
+--
+
+'박지예'가 일하는 부서 혹은 '서교동'에 있는 부서번호 출력
+	select dno from dept
+	where dno = (select dno from emp where ename = '박지예') 
+	or 
+	dloc = '서교동';
+
+------------------------------------------------------------------
+
+대한미디어에서 출판한 도서를 구매한 고객의 이름 출력
+*서브쿼리
+select name
+from customer
+where custid in (select custid
+from orders
+where bookid in(select bookid
+from book
+where publisher = '대한미디어')
+);
+
+
+*join
+select name
+from customer c, book b, orders o
+where c.custid = o.custid and
+b.bookid = o.bookid and
+publisher = '대한미디어';
+-> 데이터한건한건을 다비교
+
+==> 둘 다 같은 결과가 나옴
+	데이터의 레코드 수가 많을 땐, 서브쿼리가 훨씬 성능(속도)이 좋다 -- 보다 효율적
+------------------------------------------------------	
+상관 서브쿼리
+서브쿼리에서 메인쿼리의 컬럼 값과 관계식을 표현하는 것을 말한다.
+---
+
+출판사별로 출판사의 평균 도서 가격보다 비싼 도서를 구하시오
+
+- join
+	select publisher, avg(price) avg from book group by publisher; -- A
+	PUBLISHER                   AVG
+	-------------------- ----------
+	굿스포츠                  10250
+	쌍용미디어                33500
+	나무수                    13000
+	대한미디어                28500
+	이상미디어                16500
+	삼성당                     7500
+	Pearson                   13000
+	
+	select bookname from book b, (select publisher, avg(price) avg from book group by publisher) A
+	where b.publisher = A.publisher
+	and price > A.avg;
+
+- 상관서브쿼리
+	-출판사별로 평균도서가격을 출력
+	select publisher, avg(price) from book group by publisher;
+	
+	select bookname
+	from book b1
+	where b1.price > (select avg(b2.price) from book b2 where b2.publisher = b1.publisher);
+
+
+---------------------------------------------------------------------------------------------------
+데이터베이스 명령어의 종류
+	DDL
+	DML
+	DCL
+------------------------------------------------------------------------------------------------------
+
+DDL(데이터 정의어)
+Database Definitaion Language
+	
+	CREATE  create 테이블 생성
+	ALTER	alter  테이블의 구조변경
+	DELETE 	drop   테이블 삭제
+
+----------------------------------------------------------------
+**CREATE 문
+
+	create table 테이블명(
+		컬럼이름 자료형 [제약(들)]
+		...
+	);
+	
+	자료형
+		숫자	number
+		문자	varchar2(길이)
+		날짜	date
+		
+	제약
+		null			생략할 수 있음 (기본 설정값), null 허용한다
+		not null		생략할 수 없음
+		unique			값이 유일, 중복 불가, null 허용
+		primary key		중복할 수 없고, null 허용x
+		default			기본값 설
+		check			조건을 만족해야하는 값을 설정
+		foreign key		다른 테이블(부모 테이블)의 값 참조
+				
+		
+	------------------------------------------------------
+	
+	create table newbook(
+	bookid number,
+	bookname varchar2(20),
+	publisher varchar2(20),
+	price number
+	);
+	----------------------------------------------------------	
+	레코드를 추가하는 방법
+	insert into 테이블이름 values(값1,값2,...);
+	-> 값의 수와 순서가 테이블의 컬럼의 수와 순서가 동일해야한다.
+	
+	insert into 테이블이름(컬럼1, 컬럼2,...) values(값1, 값2,...)
+	-> 명시한 컬럼의 순서대로 값 나열
+	-> 명시한 컬럼 이외의 컬럼은 null을 허용하는 컬럼이어야한다.	
+		
+	insert into newbook values(1, '재미있는 자바', '쌍용미디어', 40000);
+	insert into newbook values(2, '신나는 자바', null, null);
+	insert into newbook(bookid, bookname) values(3,'즐거운 오라클');
+	insert into newbook values(null,'신나는 오라클',null,null);
+	--------------------------------------------------------
+	테이블의 삭제
+	drop table 테이블이름;
+	----------------------------------------------------------
+	create table newbook(
+		bookid number not null,
+		bookname varchar2(20),
+		publisher varchar2(20),
+		price number
+	);
+--------------------------------------------------------------------------------
+	==> not null: null만 아니면 됨, 중복허용
+	insert into newbook values(null, '재미있는 자바', '쌍용미디어', 40000);
+	1행에 오류:
+	ORA-01400: NULL을 ("C##MADANG"."NEWBOOK"."BOOKID") 안에 삽입할 수 없습니다
+	=> 첫번째 컬럼이 not null이기에 null을 넣을 수 없음
+	
+	insert into newbook(bookname, publisher, price) values('즐거운자바', '쌍용미디어',30000);
+	1행에 오류:
+	ORA-01400: NULL을 ("C##MADANG"."NEWBOOK"."BOOKID") 안에 삽입할 수 없습니다
+	
+	insert into newbook values(1, '재미있는 자바', null,null);
+	insert into newbook(bookid) values(2);
+	insert into newbook values(1, '신나는 오라클', null,null);
+	
+----------------------------------------------------------------------------------------------------------
+
+	unique => 유일한 값이어야해, 중복x, null 허용
+	
+	create table newbook(
+	bookid number unique,
+	bookname varchar2(30),
+	publisher varchar2(30),
+	price number
+	);
+
+	insert into newbook values(1, '재미있는 자바', null, null);
+	insert into newbook values(1, '신나는 자바', null, null);
+	ORA-00001: 무결성 제약 조건(C##MADANG.SYS_C008333)에 위배됩니다
+	insert into newbook values(null, '신나는 자바', null, null);
+	insert into newbook values(null, '신나는 오라클', null, null);
+
+-----------------------------------------------------------------------------------------------------------------
+	
+	primary key
+	=> mot null + unique
+	== null을 허용하지 않고, 유일한 값이어야함
+	=> 주식별자
+		다른 레코드와 구별하기 위한 용도로 사용
+	=> 테이블 생성시, 여러가지 속성들 중 주식별자로 사용할 컬럼을 정해서 설정
+	
+	create table newbook(
+		bookid number primary key,
+		bookname varchar2(30),
+		publisher varchar2(30),
+		price number
+	);
+	
+	insert into newbook values(1, '재미있는 자바', null, null);
+	insert into newbook values(null, '신나는 자바', null, null);
+	ORA-01400: NULL을 ("C##MADANG"."NEWBOOK"."BOOKID") 안에 삽입할 수 없습니다
+	
+	insert into newbook values(1,'신나는 자바', null, null);
+	ORA-00001: 무결성 제약 조건(C##MADANG.SYS_C008334)에 위배됩니다
+	=> 이미 도서번호 1번이 있는데, 또 1번을 추가하려고 해서, 중복되기에 오류발생
+	
+	----------------------------------------------------------------------------------------
+	default 제약
+	생략 시의 기본값 설정
+	null 허용
+	
+	create table newbook(
+		bookid number primary key,
+		bookname varchar2(30),
+		publisher varchar2(30) default '쌍용미디어',
+		price number default 30000
+	);
+	
+	insert into newbook values(1, '재미있는 자바', '한빛미디어', default);
+	insert into newbook values(2, '신나는 자바', default, default);
+	insert into newbook(bookid, bookname) values(3, '즐거운 자바');
+	insert into newbook values(4, '신나는 자바', null, default);
+	-----------------------------------------------------------------------------------------------
+	check 제약
+	
+	create table newbook(
+		bookid number primary key,
+		bookname varchar2(30) not null,
+		publisher varchar2(30) default '쌍용미디어',
+		price number default 10000 check(price >= 1000)
+	);
+	
+	insert into newbook values(1, '재미있는 자바', '한빛미디어', default);
+	insert into newbook values(2, '신나는 자바', default, 500);
+	ORA-02290: 체크 제약조건(C##MADANG.SYS_C008337)이 위배되었습니다
+	
+	---------------------------------------------------------------------------------------------
+	
+	create table newcustomer(
+		custid number primary key,
+		name varchar2(20) not null,
+		addr varchar2(30) default '서울',
+		phone varchar2(30) unique,
+		age number check(age >= 20)
+	);	
+	
+	insert into newcustomer(custid,name,age) values(1,'임상진',27);
+	insert into newcustomer values(2,'홍길동',default,'010-0000-0000',45);
+	
+	insert into newcustomer values(3,'유관순',default,'010-0000-0000',37);
+	ORA-00001: 무결성 제약 조건(C##MADANG.SYS_C008342)에 위배됩니다
+	=> addr 값은 유일해야한다, 중복 x
+	
+	insert into newcustomer values(3,'유관순',default,'010-0000-0001',37);
+	insert into newcustomer values(4,'배트맨','뉴욕','010-0000-0003',19);
+	ORA-02290: 체크 제약조건(C##MADANG.SYS_C008340)이 위배되었습니다
+	=> age는 20 이상
+	
+	insert into newcustomer values(4,null,'뉴욕','010-0000-0003',20);
+	ORA-01400: NULL을 ("C##MADANG"."NEWCUSTOMER"."NAME") 안에 삽입할 수 없습니다
+	=> name은 null이 들어갈 수 없음
+	
+	insert into newcustomer values(null,'배트맨','뉴욕','010-0000-0003',21);
+	ORA-01400: NULL을 ("C##MADANG"."NEWCUSTOMER"."CUSTID") 안에 삽입할 수 없습니다
+	=> 주식별자는 null 불가
+	-------------------------------------------------------------------------------------------------
+	
+	이미 있는 테이블의 구조와 데이터를 복사하여 새로운 테이블 생성
+	
+	create table newbook as select * from book;
+	
+		create table newcustomer(
+		custid number primary key,
+		name varchar2(20) not null,
+		addr varchar2(50) default '서울',
+		phone varchar2(30) unique
+		);	
+	
+	
+	** book테이블의 레코드를 모두 검색하여 newbook에 insert 하기
+	insert into newbook select * from book;
+	
+	**customer 테이블의 레코드를 모두 검색하여 newcustomer에 insert 하기
+	insert into newcustomer select * from customer;
+	
+========================================================================================================================
+null
+not null
+unique
+default
+primary key
+check
+foreign key
+------------------------------------------------------
+
+	primary key 설정을
+	컬럼레벨에 설정할 수도 있고
+	테이블레벨에 설정ㅎ라 수 도 있음
+	
+	create table 테이블이름(
+		컬럼1 primary key, <---컬럼레벨 -- 컬럼을 선언하면서 제약을 설정
+		컬럼2,
+		..
+	
+	)
+	
+	create table 테이블이름(
+		컬럼1,
+		컬럼2,...
+		
+		
+		primary key(컬럼1)   <---- 테이블레벨 -- 테이블 생성을 끝내기전에 제약을 설정해줌
+	);
+	
+	
+	---
+	컬럼레벨에 key설정
+	create table member(
+		id varchar2(20) primary key,
+		pwd varchar2(20),
+		name varchar2(20)
+	);
+	
+	테이블레벨에 key설정	
+	create table member(
+		id varchar2(20),
+		pwd varchar2(20),
+		name varchar2(20),
+		primary key(id)
+	);
+	
+	-------------------------------------------------------------------------
+	
+	**참조키설정
+	foreign key
+	=> 컬럼의 값이 반드시 이미있는 다른 테이블의 값을 참조해야하는 경우에 참조키 설정
+	
+	ex)
+		사원테이블의 부서번호는 반드시 부서테이블에 있는 부서번호여야한다.
+		orders테이블의 custid는 반드시 customer테이블에 있는 custid여야한다.
+		orders테이블의 booid는 반드시 book테이블의 bookid여야한다.
+		이와같이 어떤 컬럼의 값이 이미 있는 테이블의 값을 참조해야하는경우에 사용하는 것을 '참조키'라고 한다.
+		
+		참조하는 테이블을 '부모 테이블'
+		또, 참조키를 설정하는 테이블을 '자식테이블'
+		'부모테이블'과 '자식테이블'은 서로 참조키로 관계에 있다
+		
+		그래서 우리가 학습하는 '오라클'이나 mssql, mysql을
+		'관계형 데이터베이스' 라고 한다
+		Relational DataBase
+		RDB
+		=> 참조키를 설정할 때에는
+			반드시 부모테이블의 주식별자만 참조키로 설정할 수 있따
+			
+			즉, primary key로 설정된 컬럼만이 참조키로 설정될 수 있다.
+			
+----------------------------=---------------		
+	create table member(
+		id varchar2(20),
+		pwd varchar2(20),
+		name varchar2(20)
+	);
+	
+	create table board(
+		no number primary key,
+		title varchar2(50),
+		id varchar2(20) references member(id),
+		content varchar2(3000)
+	);
+	ORA-02270: 이 열목록에 대해 일치하는 고유 또는 기본 키가 없습니다.
+	=> 참조키로 설정하려는 member테이블의 id가 주식별자가 아니라서 에러발생
+--------------------------
+	
+	create table member(
+		id varchar2(20) primary key,
+		pwd varchar2(20),
+		name varchar2(20)
+	);
+	
+	create table board(
+		no number primary key,
+		title varchar2(50),
+		id varchar2(20) references member(id),
+		content varchar2(3000)
+	);
+	
+	위와 같이 테이블을 생성하게 되면
+	member와 board는
+	주종관계가 된다
+	(부모 - 자식 관계)
+	member가 부모, board가 자식	
+	관계형데이터베이스에서 테이블을 개체(Entity)라고도 표현한다.
+	개체와 개체 사이에 관계가있다
+	
+	이때에 부모테이블 레코드가 반드시 먼저, insert되어야한다.
+	
+	insert into member values('tiger','1234','김범');
+	insert into member values('lion','1234','홍사자');
+	
+	insert into board values(1, '안녕','tiger','만나서 반갑습니다');
+	insert into board values(2, '금요일','lion','즐거운 금요일입니다');
+	insert into board values(3, '등록안된ID','kim','삽입해보기');
+	ORA-02291: 무결성 제약조건(C##MADANG.SYS_C008355)이 위배되었습니다- 부모 키가 없습니다
+	=> 추가하려는 데이터가 부모테이블에 없는 값이다. member 테이블 id키에 kim이 없음
+	=> 참조키로 설정되어진 board의 id에 추가하려는 'kim'이 부모테이블인 member의 id에 존재하지 않아 에러발생
+	=> "참조무결성에 위배"된다고 표현함
+	
+	--------------------------------------------------------------------------------------
+	** 개체무결성
+		모든 레코드는 주식별자에 의해서 구별이 되어야하는 것
+		만약, 중복된 주식별자 값을 갖게 된다면,
+		"개체무결성"에 위배된다고 한다
+	
+	**참조무결성
+		참조키에 설정된 값은 반드시 부모테이블의 나타난 값이어야 한다.
+		그렇지 않은 경우 "참조무결성에 위배"된다고 한다.
+		
+	
+	팀별연습문제_
+	직원의 '이름과 근무위치'를 입력받아
+	그 직원과 '동일한 부서'에 근무하거나 입력한 '근무위치'에 근무하는 직원들의 '이름'을 출력하는 웹문서 작성
+	
+	select e.dno from emp e, dept d where e.dno=d.dno and dloc = '서교동';
+	select ename from emp where dno = (select dno from emp where ename = '임상진') and ename not in('임상진');
+	
+	select distinct ename from emp where ename not in(?) and (dno in (select e.dno from emp e, dept d where e.dno=d.dno and dloc = ?) 
+	or dno in (select dno from emp where ename = ?));
+	
+	select ename() from emp e, dept d where e.dno = d.dno and dname = ? or dloc = ?
+	
+	
+	ENAME
+----------
+이건우
+윤태인
+김시아
+노유나
+박성미
+	
+	
+	숙제
+	사용자한테 도서번호, 도서명, 출판사명, 가격을 입력받아
+	book테이블에 레코드를 추가하는 웹문서 작성
+	
+	insert into book values(14,'쌍용의 역사','쌍용출판',30000);
+	insert into book values(?,?,?,?);
+	delete book where bookid=?;
+	예습
+	오라클이 제공하는
+	문자관련함수
+	숫자관련함수
+	날짜관련 함수에 대하여 알아보고 실험해봅니다.
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	

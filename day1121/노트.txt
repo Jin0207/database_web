@@ -1,0 +1,125 @@
+homework
+
+4.부속질의에 관한 다음 sql문을 수행해보고 어떤 질의에 대한 답인지 설명하시오.
+	select custid, (select address from customer c where c.custid = o.custid) "address", sum(saleprice) "total"
+	from orders o
+	group by o.custid;
+	
+	sele절 부속질의 == 스칼라 서브쿼리
+	-
+	select cs.name, s
+	from (select custid, avg(Saleprice) s from orders group by custid) od, customer cs
+	where cs.custid = od.custid;
+	
+	from절 부속질의 == 인라인 뷰
+	-
+	select sum(saleprice) "total"
+	from orders od
+	where exists (select * from customer cs where custid <= 3 and cs.custid = od.custid);
+	
+	where절 부속질의 = 중첩 서브쿼리
+	
+5. 뷰의 장점과 단점을 설명하시오.
+	
+	뷰
+		실제로는 존재하지 않는 논리적인 가상의 테이블로서
+		복잡한 조건식을 갖는 select문이 있다면 그것을 조회하는 sql명령을 뷰로만듦으로써 보다 사용을 용이하게 만들 수 있고
+		컬럼에 접근할 수 잇는 사용자를 제한함으로써 보안성을 강화할 수 있다.
+		
+6. 다음에 해당하는 뷰를 작성하시오.
+	데이터는 c##madang 데이터베이스를 이용한다.
+	
+	(1) 판매가격이 20,000원 이상인 도서의 도서번호, 도서이름, 고객이름, 출판사, 판매가격을 보여주는 highorders 뷰 생성하기
+		
+		select b.bookid, bookname, name, publisher, saleprice
+		from orders o, book b, customer c
+		where o.custid = c.custid
+		and o.bookid = b.bookid
+		and saleprice >= 20000;
+	
+		create or replace view vw_highorders
+		as
+		select b.bookid, bookname, name, publisher, saleprice
+		from orders o, book b, customer c
+		where o.custid = c.custid
+		and o.bookid = b.bookid
+		and saleprice >= 20000;
+
+	(2) 생성한 뷰를 이용하여 판매된 도서의 이름과 고객의 이름을 출력하는 sql문을 작성하시오.
+		
+		select bookname, name from vw_highorders;
+
+	(3) highorders 뷰를 변경하고자 한다.
+		판매가격 속성을 삭제하는 명령을 수행하시오.
+		
+		create or replace view vw_highorders 
+		as
+		select  b.bookid, bookname, name, publisher
+		from orders o, book b, customer c
+		where o.custid = c.custid
+		and o.bookid = b.bookid
+		and saleprice >= 20000;
+		
+		삭제 후 (2)번 sql문을 다시 수행하시오.
+	
+		select bookname, name from vw_highorders;
+
+7. 다음 질의에 해당되는 sql문 작성
+	
+	(1) 팀장이 없는 직원의 이름을 보이시오
+		select ename from emp where nvl(mgr,0) = 0;
+	
+	(2) 사원의 이름과 부서의 이름을 보이시오
+		*조인식
+			select ename, dname from emp e, dept d
+			where e.dno = d.dno;
+	
+		*스칼라 부속질의 = select 부속질의
+			select ename, (select dname from dept d where d.dno = e.dno) dname
+			from emp e;
+	
+	(3) '서교동'에서 근무하는 사원의 이름을 보이시오
+		
+		*조인식
+			select ename from emp e, dept d where e.dno = d.dno and dloc = '서교동';
+			
+		*인라인뷰
+			select ename from emp e, (select dno from dept where dloc = '서교동') d where e.dno = d.dno;
+			
+		*중첩질의
+			select ename from emp e where e.dno in (select dno from dept where dloc = '서교동')
+			
+		*exists 사용
+			select ename from emp e where exists(select dno from dept d where d.dno = e.dno and dloc='서교동');
+
+	(4) 평균보다 급여가 많은 직원의 이름을 보이시오
+		
+		select ename from emp where salary > (select avg(salary) from emp);
+	
+	(5) 자기 부서의 평균보다 급여가 많은 직원의 이름을 보이시오. 상관 부속질의 사용
+	
+		select avg(salary) from emp group by dno;	
+		
+		select ename from emp e
+		where e.salary > (select avg(salary) from emp e2 where e.dno = e2.dno);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+		

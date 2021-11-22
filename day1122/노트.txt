@@ -363,8 +363,9 @@ print 변수명
 	variable name varchar2;
 	variable phone varchar2;
 	variable addr varchar2;
+	exec getCustInfo(2, :name, :phone, :addr);
 	exec getCustomer(2, :name, :phone, :addr);
-
+5
 **varialbe로는 테이블의 칼럼의 자료형과 일치시키기 위한
 	customer.name%type이 동작하지 않아
 	컬럼의 값을 그대로 반환해야하는 경우에는 pl/sql 형태로 호출해야한다.
@@ -465,8 +466,21 @@ end;
 오늘날짜의 가장 많이 판매된 세권의 도서의 도서별 총판매수를 출력하는 뷰를 만들고
 이것의 결과를 출력하는 웹 문서를 작성
 
+select bookid, count(*) from orders group by bookid order by count(*) desc;
 
-	
-	
+select * from (select count(*) from orders group by bookid order by count(*) desc) A
+where rownum <=3;
+
+select cnt from (select rownum n, cnt from (select count(*) cnt from orders group by bookid order by count(*) desc) A
+where rownum <=3) where n = 3;
+
+select bookid, count(bookid) cnt from orders group by bookid;
+
+select A.bookid, bookname, publisher, price, cnt from (select bookid, count(bookid) cnt from orders group by bookid) A, book b
+where cnt >= (select cnt from (select rownum n, cnt from (select count(*) cnt from orders group by bookid order by count(*) desc)
+where rownum <=3) where n = 3)
+and A.bookid = b.bookid;
+
+
 	
 		

@@ -1,0 +1,548 @@
+오늘날짜에 가장많이 판매된 세권의 도서의 도서별 총판매수를 출력하는 view를 생성
+이것의 결과를 출력하는 웹 문서 작성
+
+	오늘 날짜에 판매된 도서이름별 판매수
+	
+	update orders set orderdate = sysdate where orderid >=15;
+	
+	select bookname, count(saleprice) cnt
+	from book b, orders o
+	where b.bookid = o.bookid and
+	to_char(sysdate, 'yyyy/mm/dd') = to_char(orderdate, 'yyyy/mm/dd')
+	group by bookname
+	order by count(saleprice) desc;
+	
+	select* from (select bookname, count(saleprice) cnt
+	from book b, orders o
+	where b.bookid = o.bookid and
+	to_char(sysdate, 'yyyy/mm/dd') = to_char(orderdate, 'yyyy/mm/dd')
+	group by bookname
+	order by count(saleprice) desc)
+	where rownum <= 3;
+	
+	create view today_top3
+	as
+	select* from (select bookname, count(saleprice) cnt
+	from book b, orders o
+	where b.bookid = o.bookid and
+	to_char(sysdate, 'yyyy/mm/dd') = to_char(orderdate, 'yyyy/mm/dd')
+	group by bookname
+	order by count(saleprice) desc)
+	where rownum <= 3;
+	
+	select * from today_top3;
+	
+===================================================================================
+
+**PL/SQL 종류
+	procedure
+		자바의 메소드처럼 만들어 두고 호출하여
+		insert, update, delete, select 할 수 있다.
+		매개변수가 있을수도 없을수도 있다.
+		리턴값이 있을수도 없을 수도 있따.
+		
+	trigger
+		sql명령어의 이벤트 처리를 위한 것으로
+		어떤 A테이블에 insert, update, delete가 발생되면
+		연관있는 B테이블에 연쇄하여 insert, update, delete를
+		자동으로 하게 만드는 것
+		
+	function
+		프로시저와 마찬가지로 사용되며
+		function의 경우 select절에 사용할 용도로 만든다.
+		==> 반드시, 반환값이 있도록 만들어야한다.
+		
+------------------------------------------------------------------------------------------------
+
+** 프로시저 만들기
+	create or replace procedure 프로시저이름
+	(
+		[매개변수 (모드) 자료형],
+		....
+	)
+	as
+		[지역변수명 자료형;]
+		[지역변수명2 자료형;]
+	begin	
+		프로시저가 해야할 명령어(들)
+	end;
+	/	
+	
+**모드
+	in		프로시저를 실행할 때, 필요한 값을 읽어들이기 위한 입력용	생략시 기본설정모드
+	out		프로시저를 실행하고난 결과를 반환하기 위한 출력용
+
+**자료형
+	테이블명.컬렴명%TYPE	어떤 테이블의 컬럼 자료형과 동일한 자료형을 표현
+	
+**begin 과 end; 사이의 프로시저가 수행해야할 명령어(들)
+	sql명령어(insert, update, delete, select)가 올 수 있다.
+	또, 반복문과 제어문 등을 표현할 수도 있다.
+
+**PL/SQL의 대입연산자
+	:=
+
+-----------------------------------------
+
+	새로운 부서를 등록하는 프로시저 생성
+	
+	create or replace procedure insert_dept(
+		p_dno number,
+		p_dname dept.dname%type,
+		p_dloc dept.dname%type
+	)
+	as
+	begin
+		insert into dept values(p_dno, p_dname, p_dloc);
+	end;
+	/
+	
+	exec insert_dept(50, '개발3팀', '제주');
+
+---------------------------------------------
+	부서번호와 부서위치를 매개변수로 전달받아
+	해당부서의 정보를 수정하는 프로시저 생성
+	
+	create or replace procedure Update_dloc(
+		p_dno number,
+		p_dloc varchar2
+	)
+	as
+	begin
+		update dept set dloc = p_dloc where dno = p_dno;
+	end;
+	/		
+	
+	exec Update_dloc(50,'서교동');
+	
+-------------------------------------------------
+
+부서번호를 매개변수로 전달받아 해당 부서를 삭제하는 프로시저 생성하고 호출
+
+create or replace procedure delete_dept(
+	p_dno dept.dno%TYPE
+)
+as
+begin
+	delete dept where dno = p_dno;
+end;
+/	
+	
+exec delete_dept(50);
+	
+------------------------------------------------------------
+
+부서번호를 전달받아 해당 부서의 위치를 출력하는 프로시저
+
+	set serveroutput on;
+	
+	create or replace procedure print_dloc(
+		p_dno dept.dno%type
+	)
+	as
+		p_dloc dept.dloc%type;
+	begin
+		select dloc into p_dloc from dept where dno = p_dno;
+		dbms_output.put_line(p_dloc);
+	end;
+	/
+	
+	exec print_dloc(10);
+	
+부서번호를 전달받아 해당 부서의 위치를 반환하는 프로시저	
+	create or replace procedure get_dloc(
+		p_dno in dept.dno%type,
+		p_dloc out dept.dloc%type
+	)
+	as
+	begin
+		select dloc into p_dloc from dept where dno = p_dno;
+	end;
+	/
+	-
+	declare
+		result dept.dloc%type;
+	begin
+		get_dloc(10, result);
+		dbms_output.put_line(result);
+	end;
+	/
+	
+------------------------------------------------------
+cursor의 사용
+	프로시저 안에서 select한 행의 수가 여러건일 경우,
+	커서를 사용해야한다.
+
+--
+부서위치를 매개변수로 전달받아 해당 위치의 모든 부서명을 출력하는 프로시저를 생성하고 호출
+
+create or replace procedure print_dname(
+	p_dloc in dept.dloc%type
+)
+as
+	p_dname dept.dname%type;
+	cursor c is select dname from dept where dloc = p_dloc;
+begin
+	open c;
+	loop
+		fetch c into p_dname;
+		exit when c%NOTFOUND;
+		dbms_output.put_line(p_dname);
+	end loop;
+	close c;
+end;
+/
+
+exec print_dname('서교동');
+
+============================================
+
+트리거
+	SQL에서의 이벤트 처리를 위한 것으로
+	어떤 테이블의 이벤트(insert, update, delete)가 일어날 때
+	자동으로 동작하는 프로시저
+	
+---
+
+	create table dept_back as select * from dept;
+
+** 트리거를 만드는 방법
+	
+	create or replace trigger 트리거이름
+	시점 명령어 on 테이블이름 for each row
+	declare
+		지역변수명 자료형;
+	begin
+		트리거가 해야할 명령어(들)
+	end;
+	/
+	
+** 시점
+	before
+	after
+
+**명령어
+	insert, update, delete
+	
+**키워드
+	:new	insert나 update가 된 새로운 행을 의미하는 키워드
+	:old	delete나 update되기 전의 행을 의미하는 키워드
+
+
+----
+dept테이블에 insert가 된 후에 그 똑같은 레코드를 dept_back테이블에 자동으로 insert하는 트리거를 만들어보고
+dept테이블에 insert해본다.
+
+	create or replace trigger
+	trg_afterInsertDept
+	after insert on dept for each row
+	declare
+	begin
+		insert into dept_back values(:new.dno, :new.dname, :new.dloc);
+	end;
+	/
+	
+dept테이블에 레코드 추가 ==> dept_back에 자동으로 추가됨
+
+insert into dept values(50, '개발3팀', '제주');
+
+--
+dept테이블에 수정이되면 자동으로 dept_back의 내용도 수정되도록 트리거를 생성하고 dept테이블의 내용을 수정해본다.
+
+create or replace trigger
+trg_afterUpdateDept
+after update on dept for each row
+declare
+begin
+	update dept_back set dname = :new.dname, dloc = :new.dloc
+	where dno = :new.dno;
+end;
+/
+
+update dept set dloc= '서교동' where dno = 50;
+
+dept테이블에 삭제가 일어나면 자동으로 dept_back에도 삭제가 되도록
+트리거를 생성하고 dept테이블의 행을 삭제 합니다.
+
+create or replace trigger trg_afterDeleteDept
+after delete on dept for each row
+declare
+begin
+	delete dept_back where dno = :old.dno;
+end;
+/
+
+delete dept where dno = 50;
+
+---------------------
+
+create table 상품(
+	상품번호 number primary key,
+	상품명 varchar2(30),
+	가격 number,
+	재고수량 number
+);
+
+create table 입고(
+	입고번호 number primary key,
+	상품번호 number references 상품(상품번호),
+	입고수량 number,
+	입고일 date
+);
+
+insert into 상품 values(100, '색종이', 500, 0);
+insert into 상품 values(200, '삼각자', 700, 0);
+insert into 상품 values(300, '딱풀', 600, 0);
+
+입고테이블에 insert가 일어나면
+상품테이블에 입고한 수량만큼
+재고수량을 증가하는 트리거를 만들고 입고테이블에 insert를 수행
+
+create or replace trigger trg_insert입고
+after insert on 입고 for each row
+declare
+begin
+	update 상품 set 재고수량 = 재고수량 + :new.입고수량
+	where 상품번호 = :new.상품번호;
+end;
+/
+
+insert into 입고 values(1,100,10,sysdate);
+
+insert into 입고 values(2,200,10,sysdate);
+
+insert into 입고 values(3,300,50,sysdate);
+
+insert into 입고 values(4, 100, 100, sysdate);
+
+--
+입고에서 삭제가 일어나면 삭제한 입고수량만큼
+상품의 재고수량을 감소하는 트리거를 만들고 입고에서 삭제를 수행하여 결과 확인
+
+create or replace trigger trg_afterDelete입고
+after delete on 입고 for each row
+declare
+begin
+	update 상품 set 재고수량 = 재고수량 - :old.입고수량
+	where 상품번호 = :old.상품번호;
+end;
+/
+
+delete 입고 where 입고번호=4;
+
+--
+'입고'테이블에 수정이 될 때
+자동으로 동작하여 '상품'테이블에 재고수량을 수정하는 트리거를 만들고 '입고' 테이블에서 입고수량을 수정해본다.
+	
+	create or replace trigger trg_update입고
+	after update on 입고 for each row
+	declare
+	begin
+		update 상품 set 재고수량 = 재고수량 - (:old.입고수량 - :new.입고수량)
+		where 상품번호 = :new.상품번호;
+	end;	
+	/
+	
+	insert into 입고 values(4, 300, 100, sysdate);
+	
+	update 입고 set 입고수량 = 30 where 입고번호=3;
+	update 입고 set 입고수량 = 150 where 입고번호 = 4;
+	
+=====================================================================
+
+PL/SQL
+	1.procedure
+		빈번하게 사용하는 insert, update, delete, select 를 정의해두고 쉽게 사용할 수 있도록함
+	
+	2.trigger
+		sql에서의 이벤트처리를 위한 프로시저의 일종
+		사용자가 호출하는 것이 아니라 해당 이벤트 발생 시 자동으로 동작하는 프로시저
+	
+	3.function
+		select절에 사용할 수 있는 함수
+	
+--------------------------------------------------------------------------
+
+오라클이 기본적으로 제공하는 함수들
+	sum, max, min, count, trim, ..........
+	==> select절에서 사용가능
+
+사용자정의 함수(Function)
+	사용자가 필요로하는 함수를 만들어 select절에 사용할 수 있음
+
+function 생성
+
+	create or replace function 함수명(매개변수명 자료형) return 자료형
+	is
+		지역변수(들)
+	begin
+		함수가 해야할 문장(들);
+		return 값;
+	end;
+	/	
+
+-----------------------------------------------------------------------------
+
+판매금액을 매개변수로 전달받아 이익금을 반환하는 사용자정의함수를 만들어본다.
+사용자 정의함수를 정의 후 select에서 사용해본다.
+	판매금액이 3만원 이상이면 10%, 그렇지 않다면 5% 이익금
+	
+create or replace function profit(saleprice number) return number
+is
+	result number;
+begin
+	if saleprice >= 30000 then
+		result := saleprice * 0.1;
+	else
+		result := saleprice * 0.05;
+	end if;
+	return result;
+end;
+/
+
+오늘 판매된 주문에 대하여 '도서명, 도서가격, 판매가격, 이익금 출력
+	
+	select bookname, price, saleprice, profit(saleprice) 이익금
+	from book b, orders o
+	where b.bookid = o.bookid and
+	to_char(sysdate,'yyyy/mm/dd') = to_char(orderdate, 'yyyy/mm/dd');
+	
+
+고객번호를 매개변수로 전달받아 그 고객의 주문 총액을 계산하여
+주문총액이 2만원 이상이면 '우수'고객, 그렇지 않으면 '보통'고객을 반환하는 Grade()함수를 만들고
+호출해본다.
+
+	create or replace function Grade(f_custid number) return varchar2
+	is
+		grade varchar2(10);
+		tot number;
+	begin
+		select sum(saleprice) into tot from orders where custid = f_custid;
+		if tot >= 20000 then
+			grade := '우수';
+		else
+			grade := '보통';
+		end if;	
+		return grade;
+	end;
+	/
+
+고객의 이름과 등급을 출력
+	
+	select name, Grade(custid) grade from customer;
+
+고객의 이름과 총주문금액, 등급 출력
+
+	select name,
+	 (select sum(saleprice) from orders o where o.custid = c.custid) sum, 
+	Grade(custid) grade from customer c;
+
+----------------------------------------------------------------------
+
+주소를 매개변수로 전달받아 '국내거주', '국외 거주'를 반환하는 함수를 만들고 호출해본다
+
+	create or replace function Reside(p_address varchar2) return varchar2
+	is
+		result varchar2(20);
+	begin
+		if p_address like '대한민국%' then
+			result := '국내거주';
+		else
+			result := '국외거주';
+		end if;
+		return result;
+	end;
+	/
+
+	select name, Reside(address) reside from customer;
+
+---------------------------------------------------------------------------------
+
+	두개의 함수 호출하여 고객명, 고객의 등급, 국내거주여부를 출력
+	
+	select name, Grade(custid) grade, Reside(address) reside from customer;
+
+--------------------------------------------------------------------------------------
+
+	Reside 함수를 이용하여 국내외 거주지별 총판매액을 출력해봅니다..
+	
+	select Reside(address), sum(saleprice) from orders o, customer c
+	where o.custid = c.custid
+	group by Reside(address);
+	
+---------------------------------------------------------------
+	
+a href="detail.jsp?no=<%=no%>"
+
+"detail.jsp?no=<%=no%>"
+ 빈칸이 없어야함
+ 
+ 
+ 모든 도서목록을 출력하는 jsp를 작성
+ 	도서목록에서는 도서번호와 도서명만 출력
+ 	
+ 도서목록에서 도서명을 누르면
+ 도서상세보기로 이동하는 jsp 작성
+
+
+
+
+
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	

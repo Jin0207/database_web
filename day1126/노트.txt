@@ -1,0 +1,58 @@
+가변길이 varchar2
+고정된길이 char
+
+
+PK를 만들면
+자동으로 해당 컬럼 인덱스 생성
+
+
+
+
+
+간혹 ERD의 컬럼순서와 실제로 만들어진 테이블 컬럼순서가 다를 수 있음.
+그러므로 insert를 할때 컬럼이름 명시하여 insert
+
+insert into customer values(1,'이건우','950911-1234567','서울','010-1234-1111','회원');
+insert into customer values(2,'이순신',null,null,'010-1234-2222','비회원');
+insert into customer values(3,'유관순',null,null,'010-2222-2222','비회원');
+
+insert into dept values(9000,'영업팀');
+insert into dept values(9001,'홍보팀');
+insert into dept values(9002,'서비스팀');
+insert into dept values(9003,'회계팀');
+
+insert into emp values(1000,'홍길동','9101012-1234567','서울','010-1234-1234','2020-03-07','hong','hong1234',300,9002);
+insert into emp values(1001,'김관순','930303-2345678','서울','010-2222-2222','2021-07-09','yoo','yoo1234',320,9003);
+insert into emp values(1002,'김유신','950808-1234111','서울','010-3333-3333','2019-06-01','kim','kim1234',350,9000);
+
+insert into room_type values(1,'킹');
+insert into room_type values(2,'더블');
+insert into room_type values(3,'싱글');
+
+insert into room_state values(0,'예약불가능');
+insert into room_state values(1,'예약가능');
+
+alter table room_state modify room_state_name varchar2(20);
+
+insert into room values(1,50000,2,1);
+insert into room values(2,60000,1,1);
+insert into room values(3,90000,3,1);
+
+
+insert into payment_type values(1,'현금');
+insert into payment_type values(2,'카드');
+
+select room_no, fee, room_type_name, room_state_name
+from room r, room_type t, room_state s
+where r.room_type_code = t.room_type_code
+and r.room_state_code = s.room_state_code
+and r.room_state_code=1;
+
+insert into reservation(reservation_no, checkin, checkout, phone, total, count_guest, customer_no, room_no, eno) 
+values('202110201','2021/11/01','2021/11/02','010-1334-2222',60000,1,2,2,1000);
+
+insert into reservation(reservation_no, checkin, checkout, phone, total, count_guest, customer_no, room_no, eno) 
+values(?,?,?,?,?,?,?,?,?);
+
+
+

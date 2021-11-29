@@ -1,0 +1,29 @@
+select bookname, price from book where publisher = '이상미디어';
+
+출판사별로 출판사 이름과 도서의 판매 총액을 출력하는 웹프로그램 작성
+
+	select publisher, sum(saleprice) from orders o, book b where b.bookid = o.bookid group by publisher;
+
+출판사별로 도서의 평균가보다 비싼 도서의 이름을 출력하는 웹 프로그램을 작성
+
+	select bookname from book b
+	where price > (select avg(price) from book b2 where b.publisher = b2.publisher group by publisher );
+	
+	select publisher, bookname, price, (select avg(price) from book b3 where b1.publisher = b3.publisher) avg
+	from book b1 
+	where price > (select avg(price) from book b2 where b1.publisher = b2.publisher)
+	order by publisher;
+
+고객의 이름을 조회하고 주소를 변경하는 프로그램 작성
+
+	listCustomer.jsp
+	
+도서목록을 출력하고 새로운 한권을 도서이름, 출판사, 가격 등과 함께 입력하는 프로그램 자석
+
+	select * from book;
+
+도서의 판매수
+	select bookid, bookname, publisher, price, (select count(saleprice) from orders o where b.bookid = o.bookid)
+	from book b;
+	
+	

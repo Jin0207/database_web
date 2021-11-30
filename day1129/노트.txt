@@ -1,0 +1,206 @@
+예약번호 발행을 위한 테이블 생성
+
+create table test(no number, title varchar2(20));
+
+insert into test values(20211128100,'test');
+insert into test values(2021112910,'test');
+insert into test values(2021112911,'test');
+insert into test values(2021112912,'test');
+
+no 중애 날짜를 제외한 번호를 검색
+단, 오늘날짜에 해당하는 번호만
+select substr(no,9) from test where substr(no,1,8) = to_char(sysdate,'yyyymmdd');
+
+오늘 날짜 중 제일 큰 no의 값 가져오기
+select nvl(max(substr(no,9)),0) + 1 from test where substr(no,1,8) = to_char(sysdate,'yyyymmdd');
+
+
+alter table reservation modify RESERVATION_NO varchar2(15);
+	ORA-02267: 열의 데이터 유형이 참조 열의 데이터 유형과 일치하지 않습니다
+	payment 테이블이 참조 중인 열이라서 수정을 못함
+	
+	참조키를 잠시 삭제한 후에 수정하고 다시 참조키를 설정하기
+		사용자의 제약에 대한 정보를 갖고 있는 데이터 사전
+			desc user_constraints;
+
+	**SQL명령어 자체의 테이블이름에서는 대소문자를 구별하지 않음
+		그러나 value로써의 테이블이름은 모두 대문자로 들어가 있으며, 대소문자를 구별
+	
+	select constraint_name, constraint_type, table_name from user_constraints
+	where table_name = 'PAYMENT';
+	
+	CONSTRAINT_NAME CONSTRAINT TABLE_NAME
+	--------------- ---------- ----------
+	SYS_C008568     R          PAYMENT
+	SYS_C008569     R          PAYMENT
+	SYS_C008539     C          PAYMENT
+	SYS_C008540     C          PAYMENT
+	SYS_C008541     C          PAYMENT
+	SYS_C008542     P          PAYMENT
+
+	R(참조키)인 것을 모두 지우고
+	예약테이블의 예약번호 컬럼 자료형을 수정한 후, 다시 참조키 설정
+	
+	제약 삭제 명령
+		alter table 테이블이름 drop constraint 제약명;
+		
+		alter table payment drop constraint SYS_C008568;
+		alter table payment drop constraint SYS_C008569;
+
+alter table reservation modify RESERVATION_NO varchar2(15);
+alter table payment modify RESERVATION_NO varchar2(15);
+
+다시 참조키 설정
+	alter table 테이블명 add constraint 제약이름 foreign key(컬럼명) references 부모테이블(컬럼명)
+	
+	alter table payment add constraint fk_paymen_reservation_no
+	foreign key(RESERVATION_NO) references reservation(reservation_no);
+	
+	alter table payment add constraint fk_paymen_type_code
+	foreign key(payment_type_code) references payment_type(payment_type_code);
+	
+---------------------------------------------------------------------------------------------------------------
+**프로젝트를 수행하다보면,	테이블의 구조를 수행할 일이 빈번하다.
+	이때, 모든 테이블을 삭제하고 다시 모델링한 결과로 테이블을 재생성할 수도 있고 ==> 자식테이블 먼저 삭제해야함.
+	혹은, 관련 있는 테이블만 DDL명령어로 수정할 수 있다.
+		이땐, 참조되고 있는 자식테이블이 있다면 참조키를 삭제한 후, 수정하고
+		다시 참조키를 설정해야한다.
+
+-먼저, 참조키를 삭제하기 위해서는 user_constraints 테이블을 통하여 제약명을 확인해야한다.
+	desc user_constraints;
+	select constraint_name, constraint_type, table_name from user_Constraints;
+	
+제약 삭제 명령
+		alter table 테이블이름 drop constraint 제약명;
+
+다시 참조키 설정
+	alter table 테이블명 add constraint 제약이름 foreign key(컬럼명) references 부모테이블(컬럼명)
+
+----------------------------------------------------------------------------------------------------------------------------------
+
+예약번호:202111292 에 대한 가격(total) 검색
+
+select fee from room 
+where room_no = (select room_no from reservation where reservation_no = '202111292');
+
+예약번호:202111292에 대한 숙박기간 검색
+
+select checkout - checkin from reservation where reservation_no = '202111292';
+
+예약번호:202111292에 대한 숙박료를 계산하여 출력
+
+select fee * (select checkout - checkin from reservation where reservation_no = '202111292') 
+from room 
+where room_no = (select room_no from reservation where reservation_no = '202111292');
+	
+예약번호:202111292에 대한 숙박료 수정하기
+update reservation set 
+total = (select fee * (select checkout - checkin from reservation where reservation_no = '202111292') 
+from room 
+where room_no = (select room_no from reservation where reservation_no = '202111292')
+)
+where reservation_no='202111292';
+	
+"예약"테이블에 레코드가 추가될 때, 숙박료를 자동으로 계산하는 트리거 생성 후 실험
+
+	create table tmpdb as select room_no,checkout, checkin, reservation_no from reservation
+
+	create or replace trigger trg_tmp_reservation
+	after insert on reservation for each row
+	declare
+	begin
+		insert into tmpdb(room_no,checkout, checkin, reservation_no) values(:new.room_no,:new.checkout, :new.checkin, :new.reservation_no);
+	end;
+	/
+	
+create or replace trigger trg_reservation
+after insert on tmpdb for each row
+declare
+begin
+	update reservation set 
+	total = (select fee * (select checkout - checkin from tmpdb where reservation_no = :new.reservation_no) 
+	from room
+	where room_no = (select room_no from tmpdb where reservation_no = :new.reservation_no))
+	where reservation_no=:new.reservation_no;
+end;
+/
+
+===============================================================================
+
+HTML(Hyper Text Markup Language)
+	미 국방성에서 군용품 품목정리르 위한 언어로 만들어짐
+	종류별로 일목요연하게 정리하기 위한 무엇인가가 필요해 만듦
+	글자를 누르면 그것을 설명하는 다른 문서로 이동 ==> Hyper Text
+	글자에 표시를 해서 각각 다르게 보여준다. ==> MarkUp
+	
+	현재는 인터넷 상에서 보여지는 문서의 형태가 html로 작성
+	확장자: .html
+	문서를 작성하는 도구는 어느것을 사용해도 관계없음
+	
+	작성된 html 문서를 내 컴퓨터의 하드디스크에 저장하면, 나만 볼 수 있다.
+	전세계인을 대상으로 서비스함려면 웹서버를 구축하고 거기에 만들어야한다.
+	
+---------------------------------------------------------------------------------------
+
+	html문서들은 텍스트에 어떤 표시(mark)하는 것으로 구성
+	
+	이렇게 어떤 글자에 표시하는 것을 태그라고 한다.
+---------------------------------------------------------------------------------------------
+
+**html문서의 기본구조
+
+<!doctype html>
+<html>
+	<head>						실제로 브라우저화면에서는 보여지지않음. 정보를 담음
+		<title></title> 		제목표시줄
+	</head>
+	<body>						실제로 사용자에게 보여지는 부분
+		<h1></h2> 				본문의 제목
+		<p></p>					단
+	</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
